@@ -58,7 +58,7 @@ client.on(Events.MessageCreate, async (message) => {
               new ButtonBuilder()
                 .setCustomId("reject")
                 .setLabel("Tolak")
-                .setStyle("Danger"),
+                .setStyle("Danger")
             ),
           ],
         });
@@ -104,16 +104,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (action === "accept") {
     await member.send(
-      `Selamat!!!, anda diterima di komunitas **Old Adam Bar** semoga betahh... salam HANIWAAA`,
+      `Selamat!!!, anda diterima di komunitas **Old Adam Bar** semoga betahh... salam HANIWAAA`
     );
 
     const role = interaction.guild.roles.cache.find(
-      (role) => role.name === "Bar Customer",
+      (role) => role.name === "Bar Customer"
     );
     if (role) {
       await member.roles.add(role);
       console.log(
-        `Peran "Bar Customer" telah diberikan kepada pengguna ID: ${userId}`,
+        `Peran "Bar Customer" telah diberikan kepada pengguna ID: ${userId}`
       );
     } else {
       console.log(`Peran "Bar Customer" tidak ditemukan.`);
@@ -123,7 +123,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     console.log(`Keputusan: Terima untuk pengguna ID: ${userId}`);
   } else if (action === "reject") {
     await member.send(
-      `Maafff sepertinya kami belum bisa mengajak anda masuk komunitas **Old Adam Bar**. Tapi cobalah untuk kembali setelah lebih banyak tau tentang Touhou Project OKEYYYY`,
+      `Maafff sepertinya kami belum bisa mengajak anda masuk komunitas **Old Adam Bar**. Tapi cobalah untuk kembali setelah lebih banyak tau tentang Touhou Project OKEYYYY`
     );
 
     await interaction.reply(`Anda telah menolak ${userName} untuk bergabung.`);
@@ -132,11 +132,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   console.log(`Proses keputusan selesai untuk pengguna ID: ${userId}`);
 
-  // Setelah proses interaksi selesai, tunggu 5 detik dan hapus data pengguna
-  setTimeout(() => {
+  setTimeout(async () => {
+    // Kirim pesan bahwa verifikasi tidak valid lagi
+    try {
+      const channel = await client.channels.fetch(interaction.channelId); // Ambil channel dari interaksi
+      if (channel) {
+        await channel.send(
+          `Verifikasi untuk user ${userName} dengan ID ${userId} sudah tidak valid lagi.`
+        );
+        console.log(
+          `Pesan "verifikasi tidak valid lagi" telah dikirim untuk ID: ${userId}.`
+        );
+      } else {
+        console.log(
+          `Channel untuk interaksi tidak ditemukan. Pesan tidak dapat dikirim untuk ID: ${userId}.`
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Gagal mengirim pesan "verifikasi tidak valid lagi" untuk ID: ${userId}:`,
+        error
+      );
+    }
+
+    // Hapus data pengguna dari messages
     delete messages[interaction.message.id];
     console.log(
-      `Data untuk pengguna ID: ${userId} telah dihapus setelah 5 detik.`,
+      `Data untuk pengguna ID: ${userId} telah dihapus setelah 5 detik.`
     );
   }, 5000); // 5000 ms = 5 detik
 });
