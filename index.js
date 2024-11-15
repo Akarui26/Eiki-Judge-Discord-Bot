@@ -26,95 +26,87 @@ client.once("ready", () => {
   console.log("Bot is online!");
 });
 
-// Objek untuk menyimpan userName berdasarkan userId
-const userNames = {};
+// Gantilah userNames menjadi messages yang menyimpan 3 data
+let messages = {};
 
+// Ketika pesan dikirim, simpan data di messages
 client.on(Events.MessageCreate, async (message) => {
-  // Cek apakah pesan berasal dari Dyno Bot
   if (
     message.author.id === "1302532721570087024" &&
     message.channel.name === "verification-answer" &&
     message.embeds.length > 0
   ) {
-    // Log isi pesan ke konsol
-    console.log(`Pesan dari Dyno Bot diterima`);
     const embed = message.embeds[0];
 
-    console.log(`Embed diterima: ${JSON.stringify(embed, null, 2)}`);
-
-    // Ambil User ID dari pesan
-    const userIdMatch = embed.footer.text.match(/User ID:\s*(\d+)/);
-    if (userIdMatch) {
-      const userId = userIdMatch[1];
-      console.log(`User ID yang diambil: ${userId}`);
-
+    // Ambil FirstUserId dari embed footer
+    const FirstUserId = embed.footer.text.match(/User ID:\s*(\d+)/)?.[1];
+    if (FirstUserId) {
       try {
         // Ambil user object untuk mendapatkan username
-        const user = await client.users.fetch(userId);
-        const userName = user.username;
-        userNames[userId] = userName;
+        const user = await client.users.fetch(FirstUserId);
+        const FirstUserName = user.username;
 
-        console.log(`Username yang diambil: ${userName}`);
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("accept")
-            .setLabel("Terima")
-            .setStyle("Success"),
-          new ButtonBuilder()
-            .setCustomId("reject")
-            .setLabel("Tolak")
-            .setStyle("Danger"),
-        );
-
-        await message.channel.send({
-          content: `${userName}, Terima atau Tolak?`,
-          components: [row],
+        // Simpan data dalam messages dengan message.id sebagai kunci
+        const sentMessage = await message.channel.send({
+          content: `${FirstUserName} dengan id: ${FirstUserId}, Terima atau Tolak?`,
+          components: [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId("accept")
+                .setLabel("Terima")
+                .setStyle("Success"),
+              new ButtonBuilder()
+                .setCustomId("reject")
+                .setLabel("Tolak")
+                .setStyle("Danger"),
+            ),
+          ],
         });
-        console.log("Pesan dengan tombol telah dikirim.");
+
+        // Simpan data di messages dengan key berdasarkan message.id
+        messages[sentMessage.id] = {
+          messageId: sentMessage.id,
+          userId: FirstUserId,
+          userName: FirstUserName,
+        };
+
+        console.log(`Pesan dengan ID ${sentMessage.id} telah dikirim.`);
       } catch (error) {
-        console.error(`Gagal mengambil user dengan ID ${userId}:`, error);
+        console.error(`Gagal mengambil user dengan ID ${FirstUserId}:`, error);
       }
-    } else {
-      console.log("User ID tidak ditemukan dalam pesan.");
     }
   }
 });
 
-// Mengatur interaksi tombol
+// Tangani interaksi tombol
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
 
-  console.log(
-    `Tombol diklik oleh pengguna: ${interaction.user.tag} (ID: ${interaction.user.id})`,
-  );
+  // Ambil data dari messages berdasarkan message.id interaksi
+  const messageData = messages[interaction.message.id];
 
-  // Dapatkan userId dari embed atau simpanan sebelumnya.
-  const userId = "userId dari sumber embed atau simpanan";
-  const userName = userNames[userId];
-
-  if (!userName) {
-    console.error("Username tidak ditemukan untuk userId:", userId);
+  if (!messageData) {
+    console.error("Data pesan tidak ditemukan.");
     return interaction.reply({
-      content: "Gagal mendapatkan username.",
+      content: "Gagal mendapatkan data pesan.",
       ephemeral: true,
     });
   }
 
-  console.log(`Interaksi melibatkan username: ${userName}`);
+  const { userId, userName } = messageData;
 
-  // Dapatkan anggota dari guild
+  console.log(`Interaksi dengan pengguna: ${userName} dengan ID: ${userId}`);
+
   const member = await interaction.guild.members.fetch(userId);
 
-  if (interaction.customId === "accept") {
-    decision = true;
+  // Ambil action dari customId tombol
+  const action = interaction.customId;
 
-    // Mengirim pesan pribadi ke pengguna menggunakan userName dari embed
+  if (action === "accept") {
     await member.send(
       `Selamat!!!, anda diterima di komunitas **Old Adam Bar** semoga betahh... salam HANIWAAA`,
     );
 
-    // Memberikan peran "Bar Customer"
     const role = interaction.guild.roles.cache.find(
       (role) => role.name === "Bar Customer",
     );
@@ -128,22 +120,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     await interaction.reply(`Anda telah menerima ${userName} untuk bergabung.`);
-    console.log(`Keputusan: Terima untuk pengguna ID: ${interaction.user.id}`);
-  } else if (interaction.customId === "reject") {
-    decision = false;
-
-    // Mengirim pesan pribadi ke pengguna menggunakan userName dari embed
+    console.log(`Keputusan: Terima untuk pengguna ID: ${userId}`);
+  } else if (action === "reject") {
     await member.send(
       `Maafff sepertinya kami belum bisa mengajak anda masuk komunitas **Old Adam Bar**. Tapi cobalah untuk kembali setelah lebih banyak tau tentang Touhou Project OKEYYYY`,
     );
 
     await interaction.reply(`Anda telah menolak ${userName} untuk bergabung.`);
-    console.log(`Keputusan: Tolak untuk pengguna ID: ${interaction.user.id}`);
+    console.log(`Keputusan: Tolak untuk pengguna ID: ${userId}`);
   }
 
-  console.log(
-    `Proses keputusan selesai untuk pengguna ID: ${interaction.user.id}`,
-  );
+  console.log(`Proses keputusan selesai untuk pengguna ID: ${userId}`);
+
+  // Setelah proses interaksi selesai, tunggu 5 detik dan hapus data pengguna
+  setTimeout(() => {
+    delete messages[interaction.message.id];
+    console.log(
+      `Data untuk pengguna ID: ${userId} telah dihapus setelah 5 detik.`,
+    );
+  }, 5000); // 5000 ms = 5 detik
 });
 
 client.login(process.env.token);
