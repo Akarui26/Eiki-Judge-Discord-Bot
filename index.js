@@ -158,9 +158,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
     // Hapus data pengguna dari messages
     delete messages[interaction.message.id];
     console.log(
-      `Data untuk pengguna ID: ${userId} telah dihapus setelah 1 detik.`
+      `Data untuk pengguna ID: ${userId} telah dihapus setelah 3 detik.`
     );
-  }, 1000); // 1000 ms = 1 detik
+  }, 3000); // 3000 ms = 3 detik
 });
 
 client.login(process.env.token);
